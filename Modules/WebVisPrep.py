@@ -483,6 +483,9 @@ def export_conditions_de_for_web(
                 "names": plot_df["names"].tolist(),
                 "logfc": np.round(plot_df["logfoldchanges"].fillna(0), 3).tolist(),
                 "pvals": plot_df["pvals_adj"].tolist(),
+                "baseMean": np.round(plot_df["baseMean"].fillna(0), 3).tolist()
+                if "baseMean" in plot_df.columns
+                else [],
             }
 
             with open(
@@ -520,6 +523,102 @@ def export_conditions_de_for_web(
 
     with open(target_de_dir / "conditions_de_metadata.json", "w") as f:
         json.dump(de_metadata, f)
+
+
+def export_gsea_for_web(mod9_dir: Path, mod9b_dir: Path, out_dir: Path) -> None:
+    if not mod9_dir.exists():
+        return
+
+    gsea_dir = out_dir / "gsea"
+    rankings_dir = gsea_dir / "rankings"
+    precomputed_dir = gsea_dir / "precomputed"
+
+    rankings_dir.mkdir(parents=True, exist_ok=True)
+    precomputed_dir.mkdir(parents=True, exist_ok=True)
+
+    gsea_metadata = {"celltypes": [], "comparisons": {}, "databases": set()}
+
+    # 1. Process Rankings from Mod 9 (Compress to Parquet for On-the-fly Web Compute)
+    for ct_path in [d for d in mod9_dir.iterdir() if d.is_dir()]:
+        ct_name = ct_path.name
+        if ct_name not in gsea_metadata["celltypes"]:
+            gsea_metadata["celltypes"].append(ct_name)
+
+        for c_file in ct_path.glob("*_all_genes.csv"):
+            comparison_name = c_file.name.replace("_all_genes.csv", "")
+
+            if ct_name not in gsea_metadata["comparisons"]:
+                gsea_metadata["comparisons"][ct_name] = []
+            gsea_metadata["comparisons"][ct_name].append(comparison_name)
+
+            df = pd.read_csv(c_file)
+            cols_to_keep = ["names", "logfoldchanges", "pvals_adj"]
+            df = df[[c for c in cols_to_keep if c in df.columns]]
+            df = df.dropna(subset=["names", "logfoldchanges"])
+
+            out_pq = rankings_dir / f"{ct_name}_{comparison_name}.parquet"
+            df.to_parquet(out_pq, index=False)
+
+    # 2. Process Precomputed GSEA from Mod 9b (Convert to JSON for Instant UI Load)
+    if mod9b_dir and mod9b_dir.exists():
+        for ct_path in [d for d in mod9b_dir.iterdir() if d.is_dir()]:
+            ct_name = ct_path.name
+
+            for db_path in [d for d in ct_path.iterdir() if d.is_dir()]:
+                db_name = db_path.name
+                gsea_metadata["databases"].add(db_name)
+
+                for sig_file in db_path.glob("*_SIGNIFICANT.csv"):
+                    comparison_name = sig_file.name.replace(
+                        f"_{db_name}_SIGNIFICANT.csv", ""
+                    )
+                    df = pd.read_csv(sig_file)
+
+                    net_nodes, net_edges = [], []
+                    try:
+                        import gseapy as gp
+
+                        nodes, edges = gp.enrichment_map(df)
+                        if not nodes.empty and not edges.empty:
+                            for idx, row in nodes.iterrows():
+                                net_nodes.append(
+                                    {
+                                        "id": str(idx),
+                                        "name": row["Term"],
+                                        "nes": float(row["NES"]),
+                                        "hits": float(row.get("Hits_ratio", 0.5)),
+                                    }
+                                )
+                            for idx, row in edges.iterrows():
+                                net_edges.append(
+                                    {
+                                        "source": str(row["src_idx"]),
+                                        "target": str(row["targ_idx"]),
+                                        "weight": float(row["jaccard_coef"]),
+                                    }
+                                )
+                    except Exception:
+                        pass
+
+                    out_json = (
+                        precomputed_dir / f"{ct_name}_{comparison_name}_{db_name}.json"
+                    )
+                    with open(out_json, "w") as f:
+                        json.dump(
+                            {
+                                "table": df.to_dict(orient="records"),
+                                "network": {"nodes": net_nodes, "edges": net_edges},
+                            },
+                            f,
+                        )
+
+    gsea_metadata["databases"] = sorted(list(gsea_metadata["databases"]))
+    gsea_metadata["comparisons"] = {
+        k: sorted(list(set(v))) for k, v in gsea_metadata["comparisons"].items()
+    }
+
+    with open(gsea_dir / "gsea_metadata.json", "w") as f:
+        json.dump(gsea_metadata, f, indent=4)
 
 
 def export_causal_for_web(mod8c_dir: Path, out_dir: Path) -> None:
@@ -761,6 +860,7 @@ def run_web_backend_prep(
     settings: dict,
     DEAnalysis: bool,
     anno_keywords: list,
+    module_9b_dir: Path = None,
 ) -> None:
     module_dir = Path(module_dir)
     module_dir.mkdir(parents=True, exist_ok=True)
@@ -808,6 +908,7 @@ def run_web_backend_prep(
         treatment_col = settings["modules"]["DEAnalysis"].get("treatment_col")
         export_conditions_de_for_web(module_9_dir, aux_dir, celltype_key, treatment_col)
         export_causal_for_web(module_8c_dir, aux_dir)
+        export_gsea_for_web(module_9_dir, module_9b_dir, aux_dir)
 
     # 3. Write Backend Configuration
     logger.info("\n--- Writing Backend Configuration ---")

@@ -9,6 +9,7 @@ from typing import List, Tuple
 import numpy as np
 import scanpy as sc
 from anndata import AnnData
+import matplotlib.pyplot as plt
 
 # Import PyDESeq2
 from pydeseq2.dds import DeseqDataSet
@@ -72,6 +73,64 @@ def _run_pydeseq2_comparison(
             output_dir / f"{comparison_name}_SIGNIFICANT_only.csv", index=False
         )
 
+        # Generate MA Plot
+        try:
+            plt.figure(figsize=(8, 6))
+            # Filter out 0 or NaN baseMeans to safely use log-scale on X-axis
+            plot_df = markers[markers["baseMean"] > 0].copy()
+
+            sig_up = (plot_df["pvals_adj"] < 0.05) & (plot_df["logfoldchanges"] > 0.5)
+            sig_down = (plot_df["pvals_adj"] < 0.05) & (
+                plot_df["logfoldchanges"] < -0.5
+            )
+            ns = ~(sig_up | sig_down)
+
+            # Plot NS first so it sits in the background
+            plt.scatter(
+                plot_df.loc[ns, "baseMean"],
+                plot_df.loc[ns, "logfoldchanges"],
+                color="lightgray",
+                s=10,
+                alpha=0.5,
+                label="Not Sig",
+            )
+            # Plot Down
+            plt.scatter(
+                plot_df.loc[sig_down, "baseMean"],
+                plot_df.loc[sig_down, "logfoldchanges"],
+                color="steelblue",
+                s=15,
+                alpha=0.8,
+                label="Down",
+            )
+            # Plot Up
+            plt.scatter(
+                plot_df.loc[sig_up, "baseMean"],
+                plot_df.loc[sig_up, "logfoldchanges"],
+                color="firebrick",
+                s=15,
+                alpha=0.8,
+                label="Up",
+            )
+
+            plt.xscale("log")
+            plt.axhline(0, color="black", linewidth=1, linestyle="--")
+
+            plt.xlabel("Mean Expression (baseMean)", fontsize=12)
+            plt.ylabel("Log2 Fold Change", fontsize=12)
+            plt.title(
+                f"MA Plot: {comparison_name.replace('_vs_', ' vs ')}", fontsize=14
+            )
+            plt.legend(loc="upper right")
+            plt.tight_layout()
+
+            plt.savefig(
+                output_dir / f"{comparison_name}_MA_plot.pdf", bbox_inches="tight"
+            )
+            plt.close("all")
+        except Exception as plot_e:
+            logger.error(f"      Failed to generate MA plot: {plot_e}")
+
         logger.info(f"      Found {len(sig_markers)} significant DE genes.")
 
     except Exception as e:
@@ -84,11 +143,95 @@ def targeted_pairwise_DE(
     treatment_col: str,
     comparisons: List[Tuple[str, str]],
     module_dir: str | Path,
+    batch_key: str = None,
+    sample_key: str = None,
+    n_top_genes: int = 2000,
+    n_comps: int = 50,
 ) -> None:
-    """Performs specific targeted pairwise DE comparisons within each cell type using PyDESeq2."""
+    """Performs PCA on pseudobulk, then specific targeted pairwise DE comparisons within each cell type using PyDESeq2."""
     adata = sc.read_h5ad(pseudobulk_adata_path)
     module_dir = Path(module_dir)
 
+    # 1. Pseudobulk PCA
+    logger.info("Running PCA on pseudobulk data before DE analysis...")
+    try:
+        adata_pca = adata.copy()
+
+        # Ensure non-negative integers for seurat_v3 HVG calculations
+        adata_pca.X = np.round(adata_pca.X).astype(int)
+
+        # Filter out genes with zero counts across all pseudobulk samples
+        sc.pp.filter_genes(adata_pca, min_counts=1)
+
+        actual_n_comps = min(n_comps, adata_pca.n_obs - 1)
+        actual_n_top_genes = min(n_top_genes, adata_pca.n_vars)
+
+        if actual_n_comps >= 2 and actual_n_top_genes > 2:
+            sc.pp.highly_variable_genes(
+                adata_pca, flavor="seurat_v3", n_top_genes=actual_n_top_genes
+            )
+
+            # Standard practice: normalize and log before scaling
+            sc.pp.normalize_total(adata_pca, target_sum=1e4)
+            sc.pp.log1p(adata_pca)
+            sc.pp.scale(adata_pca, max_value=10)
+
+            sc.tl.pca(adata_pca, n_comps=actual_n_comps)
+
+            # Set up plotting directory
+            sc.settings.figdir = str(module_dir)
+
+            # A) Variance Ratio (Elbow Plot)
+            sc.pl.pca_variance_ratio(
+                adata_pca,
+                log=True,
+                n_pcs=actual_n_comps,
+                show=False,
+                save="_variance_ratio.pdf",
+            )
+
+            # B) PCA scatter plot
+            color_cols = [
+                c for c in [treatment_col, batch_key, sample_key, celltype_col] if c
+            ]
+            color_cols = list(
+                dict.fromkeys(color_cols)
+            )  # Maintain order, remove duplicates safely
+            valid_colors = [c for c in color_cols if c in adata_pca.obs.columns]
+
+            if valid_colors:
+                sc.pl.pca(
+                    adata_pca,
+                    color=valid_colors,
+                    show=False,
+                    save="_pseudobulk_samples.pdf",
+                )
+            else:
+                sc.pl.pca(adata_pca, show=False, save="_pseudobulk_samples.pdf")
+
+            plt.close("all")  # Clear figures to prevent memory leaks
+
+            # Transfer PCA representation to original object for web visualization
+            # Note: Observation rows are un-altered, making coordinate transfer 1-to-1 safe.
+            if adata_pca.n_obs == adata.n_obs:
+                adata.obsm["X_pca"] = adata_pca.obsm["X_pca"]
+                adata.write_h5ad(pseudobulk_adata_path)
+                logger.info(
+                    f"PCA completed successfully. 'X_pca' added to {Path(pseudobulk_adata_path).name}"
+                )
+            else:
+                logger.warning(
+                    "Observation dimension mismatch. Skipping X_pca transfer."
+                )
+        else:
+            logger.warning(
+                f"Not enough valid observations ({adata_pca.n_obs}) or genes ({adata_pca.n_vars}) "
+                f"for PCA. Minimum 3 obs and 3 genes required."
+            )
+    except Exception as e:
+        logger.error(f"Pseudobulk PCA encountered an error: {e}")
+
+    # 2. PyDESeq2 Cell Type Targeted Comparisons
     # Ensure raw integer counts for PyDESeq2
     adata.X = np.round(adata.X).astype(int)
     cell_types = adata.obs[celltype_col].dropna().unique()

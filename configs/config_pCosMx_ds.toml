@@ -29,6 +29,7 @@ modules = [
     "8b_LIANA",
     "8c_LIANA_Causal",
     "9_DEAnalysis",
+    "9b_GSEA",
     "10_WebVis",
 ]
 
@@ -168,7 +169,8 @@ treatment_col = "Inflammation"
 comparisons = [
     ["yes", "no"],
 ]
-
+pca_n_top_genes = 2000
+pca_n_comps = 50
 
 [modules.WebVisPrep]
 annotation_columns = ["leiden", "leidenpca_n15_r1.0"]

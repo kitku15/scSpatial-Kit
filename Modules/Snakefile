@@ -30,6 +30,7 @@ HASH_CPDB = generate_run_id(MODS.get("Cellphonedb", {}))
 HASH_LIANA = generate_run_id(MODS.get("LIANA", {}))
 HASH_CAUSAL = generate_run_id(MODS.get("LIANA_Causal", {}))
 HASH_DE = generate_run_id(MODS.get("DEAnalysis", {}))
+HASH_GSEA = generate_run_id(MODS.get("GSEA", {}))
 HASH_WEB = generate_run_id(MODS.get("WebVisPrep", {}))
 
 TARGETS = []
@@ -44,6 +45,7 @@ if any(m.startswith("8_") for m in MODULES_TO_RUN): TARGETS.append(f"{ANALYSIS_D
 if any(m.startswith("8b_") for m in MODULES_TO_RUN): TARGETS.append(f"{ANALYSIS_DIR}/8b_LIANA/{HASH_LIANA}/.done")
 if any(m.startswith("8c_") for m in MODULES_TO_RUN): TARGETS.append(f"{ANALYSIS_DIR}/8c_LIANA_Causal/{HASH_CAUSAL}/.done")
 if any(m.startswith("9_") for m in MODULES_TO_RUN): TARGETS.append(f"{ANALYSIS_DIR}/9_DEAnalysis/{HASH_DE}/.done")
+if any(m.startswith("9b_") for m in MODULES_TO_RUN): TARGETS.append(f"{ANALYSIS_DIR}/9b_GSEA/{HASH_GSEA}/.done")
 if any(m.startswith("10_") for m in MODULES_TO_RUN): TARGETS.append(f"{ANALYSIS_DIR}/10_WebVis/{HASH_WEB}/.done")
 
 rule all:
@@ -115,6 +117,11 @@ rule mod9_de_analysis:
     input: f"{ANALYSIS_DIR}/7_Decoupler/.done_{HASH_DECOUP}"
     output: touch(f"{ANALYSIS_DIR}/9_DEAnalysis/{HASH_DE}/.done")
     shell: "python Modules/__main__.py {CONFIG_FILE} --modules 9"
+
+rule mod9b_gsea:
+    input: f"{ANALYSIS_DIR}/9_DEAnalysis/{HASH_DE}/.done"
+    output: touch(f"{ANALYSIS_DIR}/9b_GSEA/{HASH_GSEA}/.done")
+    shell: "python Modules/__main__.py {CONFIG_FILE} --modules 9b"
 
 # --- TERMINAL SINK ---
 rule mod10_web_vis:

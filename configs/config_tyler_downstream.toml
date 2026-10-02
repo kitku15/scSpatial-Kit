@@ -219,6 +219,12 @@ comparisons = [
     ["CPIc", "IFX_NR"]  
 ]
 
+[modules.GSEA]
+databases = ["MSigDB_Hallmark_2020", "KEGG_2021_Human", "Reactome_2022", "GO_Biological_Process_2021"]
+nes_threshold = 2.0
+padj_threshold = 0.05
+threads = 4
+
 [modules.WebVisPrep]
 # standard_meta = ["fov", "DiseaseType", "TreatmentResponse"]
 annotation_columns = ["leiden", "Final_Annotation", "Broad_Lineage", "Broad_Celltype", "Coarse_Celltype"]

@@ -193,6 +193,7 @@ if __name__ == "__main__":
             "8b_",
             "8c_",
             "9_",
+            "9b_",
             "10_",
         }
 
@@ -933,6 +934,53 @@ if __name__ == "__main__":
                         treatment_col=DEAnalysis_settings.get("treatment_col", None),
                         comparisons=DEAnalysis_settings.get("comparisons", None),
                         module_dir=hashed_mod9_dir,
+                        batch_key=batch_key,
+                        sample_key=sample_key,
+                        n_top_genes=DEAnalysis_settings.get("pca_n_top_genes", 2000),
+                        n_comps=DEAnalysis_settings.get("pca_n_comps", 50),
+                    )
+
+            if any(m.startswith("9b_") for m in modules_to_run):
+                try:
+                    _, module_9_dir = get_module(9)
+                except ValueError:
+                    logger.error(
+                        "Module 9 must be present in config.modules to locate DE files for Module 9b."
+                    )
+                    sys.exit(1)
+
+                _, module_9b_dir = get_module("9b")
+                gsea_settings = settings["modules"].get("GSEA", {})
+
+                # Validation using schema
+                from config import GSEAConfig
+
+                gsea_config = GSEAConfig(**gsea_settings)
+
+                with tracker.measure("Module 9b: GSEApy Pathway Analysis"):
+                    logger.info("Running Pathway Enrichment Analysis (GSEApy)...")
+
+                    # Target the exact output folder from Module 9
+                    hashed_mod9_dir = module_9_dir / generate_run_id(
+                        settings["modules"].get("DEAnalysis", {})
+                    )
+                    hashed_mod9b_dir = create_hashed_outdir(
+                        module_9b_dir, gsea_settings
+                    )
+
+                    from GSEA import run_gsea_on_de_results
+
+                    run_gsea_on_de_results(
+                        module_9_dir=hashed_mod9_dir,
+                        module_9b_dir=hashed_mod9b_dir,
+                        databases=gsea_config.databases,
+                        gene_col=gsea_config.gene_col,
+                        score_col=gsea_config.score_col,
+                        nes_threshold=gsea_config.nes_threshold,
+                        padj_threshold=gsea_config.padj_threshold,
+                        min_size=gsea_config.min_size,
+                        max_size=gsea_config.max_size,
+                        threads=gsea_config.threads,
                     )
 
             # MODULE 10: Exporting Files for Web Tool
@@ -946,6 +994,10 @@ if __name__ == "__main__":
                 _, module_8b_dir = get_module("8b")
                 _, module_8c_dir = get_module("8c")
                 _, module_9_dir = get_module(9)
+                try:
+                    _, module_9b_dir = get_module("9b")
+                except ValueError:
+                    module_9b_dir = None
                 _, module_10_dir = get_module(10)
 
                 # Fetch the heavily processed pseudobulk/TF AnnData
@@ -989,6 +1041,12 @@ if __name__ == "__main__":
                     hash9 = module_9_dir / generate_run_id(
                         settings["modules"].get("DEAnalysis", {})
                     )
+                    hash9b = (
+                        module_9b_dir
+                        / generate_run_id(settings["modules"].get("GSEA", {}))
+                        if module_9b_dir
+                        else None
+                    )
 
                     run_web_backend_prep(
                         module_dir=hashed_mod10_dir,
@@ -1012,6 +1070,7 @@ if __name__ == "__main__":
                         settings=settings,
                         DEAnalysis=DEAnalysis,
                         anno_keywords=anno_keywords,
+                        module_9b_dir=hash9b,
                     )
 
         logger.info(

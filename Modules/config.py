@@ -160,6 +160,31 @@ class DEAnalysisConfig(BaseModel):
     celltype_col: str
     treatment_col: str
     comparisons: list[list[str]]  # e.g., [["Stim", "Ctrl"]]
+    pca_n_top_genes: int = Field(
+        default=2000,
+        ge=10,
+        description="Number of highly variable genes to compute for pseudobulk PCA prior to DE.",
+    )
+    pca_n_comps: int = Field(
+        default=50,
+        ge=2,
+        description="Number of principal components to calculate for pseudobulk PCA prior to DE.",
+    )
+
+
+class GSEAConfig(BaseModel):
+    databases: list[str] = ["MSigDB_Hallmark_2020", "KEGG_2021_Human", "Reactome_2022"]
+    gene_col: str = "names"
+    score_col: str = "logfoldchanges"  # Matches PyDESeq2 output
+    nes_threshold: float = Field(
+        default=2.0, description="Minimum absolute NES to consider significant."
+    )
+    padj_threshold: float = Field(
+        default=0.05, description="Maximum Adjusted P-value to consider significant."
+    )
+    min_size: int = 5
+    max_size: int = 1000
+    threads: int = 4
 
 
 class WebVisPrepConfig(BaseModel):

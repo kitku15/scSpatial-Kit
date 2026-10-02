@@ -153,6 +153,7 @@ geopandas==1.1.0
     # via spatialdata
 ghp-import==2.1.0
     # via mkdocs
+gseapy>=1.1.5
 h5py==3.14.0
     # via
     #   anndata
