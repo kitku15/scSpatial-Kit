@@ -1,0 +1,272 @@
+/* --- GLOBAL MINIMALIST SETTINGS WITH TWO SHADES OF PINK --- */
+:root {
+  --brand-black: #111111;
+  --brand-white: #ffffff;
+  --brand-grey: #f5f5f5;
+  --brand-dark-grey: #222222;
+  
+  /* The Two Shades of Pink */
+  --brand-pink-bold: #d81b60;   /* Deeper pink for active states */
+  --brand-pink-light: #f06292;  /* Softer pink for hover states */
+  
+  /* Force MkDocs internal variables to use the pinks */
+  --md-accent-fg-color: var(--brand-pink-bold);
+  --md-accent-fg-color--transparent: rgba(216, 27, 96, 0.1);
+  --md-typeset-a-color: var(--brand-pink-bold);
+}
+
+/* Make the base text slightly darker/crisper in light mode */
+[data-md-color-scheme="default"] {
+  --md-text-color: #333333;
+}
+
+/* --- THE HEADER --- */
+[data-md-color-scheme="default"] .md-header {
+  background-color: var(--brand-white);
+  color: var(--brand-black);
+  box-shadow: none;
+  border-bottom: 1px solid #eaeaea;
+}
+
+[data-md-color-scheme="slate"] .md-header {
+  background-color: var(--brand-black);
+  border-bottom: 1px solid #333;
+}
+
+/* Make the logo slightly larger */
+.md-header__button.md-logo img, 
+.md-header__button.md-logo svg {
+  height: 2.4rem; 
+  width: auto;
+}
+
+/* Fix for Dark Mode Logo */
+[data-md-color-scheme="slate"] .md-header__button.md-logo {
+  background-color: var(--brand-white);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-right: 12px;
+}
+
+
+/* --- SIDEBAR & NAVIGATION LINKS (Fixing the Blue!) --- */
+
+/* Active link in the sidebar / Table of contents */
+.md-nav__link--active, 
+.md-nav__link--active[for] {
+  color: var(--brand-pink-bold) !important;
+  font-weight: 700;
+}
+
+/* Hovering over any link in the sidebar */
+.md-nav__link:hover, 
+.md-nav__link[for]:hover {
+  color: var(--brand-pink-light) !important;
+}
+
+/* The active indicator line next to the Table of Contents */
+.md-nav__item--active > .md-nav__link {
+  color: var(--brand-pink-bold) !important;
+}
+
+
+/* =========================================
+   BUTTONS (Bulletproof Separation)
+   ========================================= */
+
+/* 1. PRIMARY BUTTON (e.g., "Get Started") -> Black with White Text */
+.md-typeset .md-button.md-button--primary {
+  background-color: var(--brand-black) !important;
+  color: var(--brand-white) !important;
+  border: 2px solid var(--brand-black) !important;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+/* Primary Button Hover -> Turns Pink! */
+.md-typeset .md-button.md-button--primary:hover {
+  background-color: var(--brand-pink-light) !important;
+  border-color: var(--brand-pink-light) !important;
+  color: var(--brand-white) !important;
+  transform: translateY(-1px);
+}
+
+
+/* 2. SECONDARY BUTTON (e.g., "Configuration Guide") -> White with Pink Text */
+.md-typeset .md-button:not(.md-button--primary) {
+  background-color: transparent !important;
+  color: var(--brand-pink-bold) !important;
+  border: 2px solid var(--brand-pink-bold) !important;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+/* Secondary Button Hover -> Soft Pink Background */
+.md-typeset .md-button:not(.md-button--primary):hover {
+  background-color: var(--md-accent-fg-color--transparent) !important;
+  color: var(--brand-pink-bold) !important;
+  transform: translateY(-1px);
+}
+
+
+/* 3. DARK MODE ADJUSTMENTS */
+[data-md-color-scheme="slate"] .md-typeset .md-button.md-button--primary {
+  background-color: var(--brand-white) !important;
+  color: var(--brand-black) !important;
+  border-color: var(--brand-white) !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .md-button:not(.md-button--primary) {
+  color: var(--brand-pink-light) !important;
+  border-color: var(--brand-pink-light) !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .md-button:not(.md-button--primary):hover {
+  background-color: rgba(240, 98, 146, 0.1) !important;
+}
+
+/* --- BODY TEXT LINKS --- */
+.md-typeset a {
+  color: var(--brand-pink-bold);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 2px solid var(--md-accent-fg-color--transparent);
+  transition: all 0.2s ease;
+}
+
+[data-md-color-scheme="slate"] .md-typeset a {
+  color: var(--brand-pink-light);
+  border-bottom: 2px solid rgba(240, 98, 146, 0.2);
+}
+
+/* Hovering over links in paragraphs */
+.md-typeset a:hover {
+  color: var(--brand-pink-light);
+  border-bottom-color: var(--brand-pink-light);
+}
+
+
+/* --- CODE BLOCKS --- */
+[data-md-color-scheme="default"] .md-typeset pre > code {
+  background-color: var(--brand-grey);
+  color: var(--brand-black);
+  border-radius: 6px;
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre > code {
+  background-color: var(--brand-dark-grey);
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+/* Hide the text, but keep the invisible container to push the right-side icons away */
+.md-header__title .md-header__topic {
+  display: none !important;
+}
+
+/* =========================================
+   "POWERED BY" TOOL GRID
+   ========================================= */
+.powered-by-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-auto-rows: 120px; /* <--- Forces EVERY box to be exactly 120px tall */
+  gap: 16px;
+  margin-top: 1rem;
+}
+
+.tool-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Centers both image and text perfectly */
+  text-align: center;
+  padding: 16px;
+  height: 100%; /* Takes up the full 120px */
+  border: 2px solid #eaeaea;
+  border-radius: 8px;
+  background-color: var(--brand-white);
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+}
+
+/* The space for the logo */
+.tool-badge img {
+  max-height: 40px;
+  margin-bottom: 10px;
+  object-fit: contain;
+}
+
+/* Tool Name */
+.tool-badge .tool-name {
+  color: var(--brand-black);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+/* Short Description */
+
+.tool-badge .tool-desc {
+  font-size: 0.85rem;
+  color: #666666;
+  margin-top: 4px;
+}
+
+/* Hover Effect -> Border turns Pink! */
+.tool-badge:hover {
+  border-color: var(--brand-pink-bold);
+  box-shadow: 0 4px 12px var(--md-accent-fg-color--transparent);
+  transform: translateY(-2px);
+}
+
+/* The space for the logo */
+.tool-badge img {
+  max-height: 65px;  /* Increased from 40px so logos can be bigger */
+  max-width: 140px;  /* Prevents super-wide logos from stretching the box */
+  object-fit: contain;
+  margin: auto;      /* Perfectly centers the logo */
+}
+
+/* If a card DOES have text (like CellPhoneDB), add a little space below the image */
+.tool-badge img:not(:last-child) {
+  margin-bottom: 12px;
+}
+
+/* --- Dark Mode Adjustments --- */
+[data-md-color-scheme="slate"] .tool-badge {
+  background-color: var(--brand-dark-grey);
+  border-color: #333333;
+}
+[data-md-color-scheme="slate"] .tool-badge .tool-name {
+  color: var(--brand-white);
+}
+[data-md-color-scheme="slate"] .tool-badge .tool-desc {
+  color: #aaaaaa;
+}
+[data-md-color-scheme="slate"] .tool-badge:hover {
+  border-color: var(--brand-pink-light);
+}
+
+
+/* --- HIDE DEFAULT MKDOCS FOOTER BRANDING --- */
+
+/* 1. Shrink the floating "Made with" text to size zero */
+.md-copyright {
+  font-size: 0 !important; 
+}
+
+/* 2. Restore the font size specifically for your custom Lab Logo & text */
+.md-copyright__highlight {
+  font-size: 0.75rem !important; 
+}
+
+/* 3. Completely hide the "Material for MkDocs" hyperlink */
+.md-copyright > a {
+  display: none !important;
+}
+
+a[href="#hide-me"] {
+    display: none !important;
+}
