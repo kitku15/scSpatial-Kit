@@ -45,6 +45,7 @@ umap_latent = "X_pca"
 n_neighbors = [15, 30]                    
 resolution = [1.0]                
 cluster_name = "leidenpca"
+exclude_genes_file = "exclude_genes_HVG.txt"
 
 # Keep these in case you turn scVIVA back on later
 scviva_layer = "counts"
@@ -171,6 +172,7 @@ comparisons = [
 ]
 pca_n_top_genes = 2000
 pca_n_comps = 50
+exclude_genes_file = "exclude_genes_HVG.txt"
 
 [modules.WebVisPrep]
 annotation_columns = ["leiden", "leidenpca_n15_r1.0"]

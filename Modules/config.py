@@ -170,6 +170,10 @@ class DEAnalysisConfig(BaseModel):
         ge=2,
         description="Number of principal components to calculate for pseudobulk PCA prior to DE.",
     )
+    exclude_genes_file: Optional[str] = Field(
+        default=None,
+        description="Path to a text file containing genes to exclude before PCA (one gene per line).",
+    )
 
 
 class GSEAConfig(BaseModel):

@@ -147,6 +147,7 @@ def targeted_pairwise_DE(
     sample_key: str = None,
     n_top_genes: int = 2000,
     n_comps: int = 50,
+    exclude_genes_file: str | Path = None,
 ) -> None:
     """Performs PCA on pseudobulk, then specific targeted pairwise DE comparisons within each cell type using PyDESeq2."""
     adata = sc.read_h5ad(pseudobulk_adata_path)
@@ -156,6 +157,13 @@ def targeted_pairwise_DE(
     logger.info("Running PCA on pseudobulk data before DE analysis...")
     try:
         adata_pca = adata.copy()
+        
+        if exclude_genes_file and Path(exclude_genes_file).is_file():
+            with open(exclude_genes_file, "r") as f:
+                excluded_genes = {line.strip() for line in f if line.strip()}
+            keep_genes = [g for g in adata_pca.var_names if g not in excluded_genes]
+            adata_pca = adata_pca[:, keep_genes].copy()
+            logger.info(f"Excluded {len(excluded_genes)} genes before pseudobulk PCA.")
 
         # Ensure non-negative integers for seurat_v3 HVG calculations
         adata_pca.X = np.round(adata_pca.X).astype(int)
@@ -215,9 +223,17 @@ def targeted_pairwise_DE(
             # Note: Observation rows are un-altered, making coordinate transfer 1-to-1 safe.
             if adata_pca.n_obs == adata.n_obs:
                 adata.obsm["X_pca"] = adata_pca.obsm["X_pca"]
+                
+                # Map HVG stats back to main pseudobulk object for transparency
+                for col in ["highly_variable", "means", "variances", "variances_norm"]:
+                    if col in adata_pca.var.columns:
+                        adata.var[col] = adata.var_names.map(adata_pca.var[col])
+                if "highly_variable" in adata.var.columns:
+                    adata.var["highly_variable"] = adata.var["highly_variable"].fillna(False).astype(bool)
+
                 adata.write_h5ad(pseudobulk_adata_path)
                 logger.info(
-                    f"PCA completed successfully. 'X_pca' added to {Path(pseudobulk_adata_path).name}"
+                    f"PCA completed successfully. 'X_pca' and HVG stats added to {Path(pseudobulk_adata_path).name}"
                 )
             else:
                 logger.warning(

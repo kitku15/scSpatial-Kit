@@ -545,6 +545,7 @@ def run_dimension_reduction(
     n_layers: int = 2,
     pre_cluster_res: float = 1.0,
     dot_size: float = 0.5,
+    exclude_genes_file: Optional[Union[str, Path]] = None,
 ) -> None:
     """Runs the complete dimension reduction workflow."""
 
@@ -618,12 +619,32 @@ def run_dimension_reduction(
     # --- MEMORY SAFE PCA COMPUTATION ---
     if run_pca or (umap_latent == "X_pca"):
         logger.info("Computing PCA...")
+        
+        adata_for_hvg = adata.copy()
+        if exclude_genes_file and Path(exclude_genes_file).is_file():
+            with open(exclude_genes_file, "r") as f:
+                excluded_genes = {line.strip() for line in f if line.strip()}
+            keep_genes = [g for g in adata_for_hvg.var_names if g not in excluded_genes]
+            adata_for_hvg = adata_for_hvg[:, keep_genes]
+            logger.info(f"Excluded {len(excluded_genes)} genes before HVG selection.")
+
         sc.pp.highly_variable_genes(
-            adata, layer="counts", flavor="seurat_v3", n_top_genes=2000
+            adata_for_hvg, layer="counts", flavor="seurat_v3", n_top_genes=2000
         )
 
+        # Map the highly_variable annotations back to the main adata object
+        for col in ["highly_variable", "highly_variable_rank", "means", "variances", "variances_norm"]:
+            if col in adata_for_hvg.var.columns:
+                adata.var[col] = adata.var_names.map(adata_for_hvg.var[col])
+        
+        # Ensure the column is boolean, and explicitly fill excluded genes with False
+        if "highly_variable" in adata.var.columns:
+            adata.var["highly_variable"] = adata.var["highly_variable"].fillna(False).astype(bool)
+
         # Work on a temporary subset to avoid corrupting the main object
-        adata_hvg = adata[:, adata.var["highly_variable"]].copy()
+        adata_hvg = adata_for_hvg[:, adata_for_hvg.var["highly_variable"]].copy()
+        del adata_for_hvg
+        
         sc.pp.scale(adata_hvg, max_value=10)
 
         compute_pcs = n_comps if n_comps else 50
