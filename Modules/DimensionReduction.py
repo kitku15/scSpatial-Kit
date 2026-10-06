@@ -619,7 +619,7 @@ def run_dimension_reduction(
     # --- MEMORY SAFE PCA COMPUTATION ---
     if run_pca or (umap_latent == "X_pca"):
         logger.info("Computing PCA...")
-        
+
         adata_for_hvg = adata.copy()
         if exclude_genes_file and Path(exclude_genes_file).is_file():
             with open(exclude_genes_file, "r") as f:
@@ -633,18 +633,26 @@ def run_dimension_reduction(
         )
 
         # Map the highly_variable annotations back to the main adata object
-        for col in ["highly_variable", "highly_variable_rank", "means", "variances", "variances_norm"]:
+        for col in [
+            "highly_variable",
+            "highly_variable_rank",
+            "means",
+            "variances",
+            "variances_norm",
+        ]:
             if col in adata_for_hvg.var.columns:
                 adata.var[col] = adata.var_names.map(adata_for_hvg.var[col])
-        
+
         # Ensure the column is boolean, and explicitly fill excluded genes with False
         if "highly_variable" in adata.var.columns:
-            adata.var["highly_variable"] = adata.var["highly_variable"].fillna(False).astype(bool)
+            adata.var["highly_variable"] = (
+                adata.var["highly_variable"].fillna(False).astype(bool)
+            )
 
         # Work on a temporary subset to avoid corrupting the main object
         adata_hvg = adata_for_hvg[:, adata_for_hvg.var["highly_variable"]].copy()
         del adata_for_hvg
-        
+
         sc.pp.scale(adata_hvg, max_value=10)
 
         compute_pcs = n_comps if n_comps else 50

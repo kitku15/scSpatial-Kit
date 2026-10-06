@@ -939,7 +939,9 @@ if __name__ == "__main__":
                         sample_key=sample_key,
                         n_top_genes=DEAnalysis_settings.get("pca_n_top_genes", 2000),
                         n_comps=DEAnalysis_settings.get("pca_n_comps", 50),
-                        exclude_genes_file=DEAnalysis_settings.get("exclude_genes_file", None),
+                        exclude_genes_file=DEAnalysis_settings.get(
+                            "exclude_genes_file", None
+                        ),
                     )
 
             if any(m.startswith("9b_") for m in modules_to_run):

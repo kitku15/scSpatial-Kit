@@ -157,7 +157,7 @@ def targeted_pairwise_DE(
     logger.info("Running PCA on pseudobulk data before DE analysis...")
     try:
         adata_pca = adata.copy()
-        
+
         if exclude_genes_file and Path(exclude_genes_file).is_file():
             with open(exclude_genes_file, "r") as f:
                 excluded_genes = {line.strip() for line in f if line.strip()}
@@ -223,13 +223,15 @@ def targeted_pairwise_DE(
             # Note: Observation rows are un-altered, making coordinate transfer 1-to-1 safe.
             if adata_pca.n_obs == adata.n_obs:
                 adata.obsm["X_pca"] = adata_pca.obsm["X_pca"]
-                
+
                 # Map HVG stats back to main pseudobulk object for transparency
                 for col in ["highly_variable", "means", "variances", "variances_norm"]:
                     if col in adata_pca.var.columns:
                         adata.var[col] = adata.var_names.map(adata_pca.var[col])
                 if "highly_variable" in adata.var.columns:
-                    adata.var["highly_variable"] = adata.var["highly_variable"].fillna(False).astype(bool)
+                    adata.var["highly_variable"] = (
+                        adata.var["highly_variable"].fillna(False).astype(bool)
+                    )
 
                 adata.write_h5ad(pseudobulk_adata_path)
                 logger.info(

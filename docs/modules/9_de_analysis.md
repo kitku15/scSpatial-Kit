@@ -12,6 +12,9 @@
 | `celltype_col` | `String` | `"Final_Annotation"` | The cell type annotation column in `adata.obs`. Comparisons are evaluated independently within each population. |
 | `treatment_col` | `String` | `"TreatmentResponse"` | Metadata column in `adata.obs` defining biological conditions or treatment arms. |
 | `comparisons` | `List[List[String]]` | `[]` | Contrasts to compute, formatted as `["Test_Group", "Reference_Group"]`. Positive $\log_2\text{FC}$ values indicate upregulation in the `Test_Group`. |
+| `pca_n_top_genes` | `Integer` | `2000` | Number of highly variable genes to compute for pseudobulk PCA prior to DE. |
+| `pca_n_comps` | `Integer` | `50` | Number of principal components to calculate for pseudobulk PCA prior to DE. |
+| `exclude_genes_file` | `String` or `None` | `""` | *(Optional)* Path to a plain-text file containing a list of genes to exclude before computing pseudobulk PCA (one gene per line). |
 
 ## Example Config
 
@@ -23,6 +26,9 @@ comparisons = [
     ["IFX_NR", "IFX_R"],
     ["CPIc", "Healthy"]
 ]
+pca_n_top_genes = 2000 
+pca_n_comps = 50 
+exclude_genes_file = "exclude_genes.txt"
 ```
 
 ## Outputs

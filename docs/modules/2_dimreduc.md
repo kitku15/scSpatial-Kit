@@ -21,6 +21,7 @@
 | `cluster_name` | `String` | `"leiden"` | Prefix for the resulting cluster column in `adata.obs` (e.g., `"leiden"` -> `"leiden_n15_r0.5"`). |
 | `umap_latent` | `String` | `"X_scVIVA"` | The latent space used to build the UMAP/graph (e.g., `"X_pca"`, `"X_scVI"`, `"X_scVIVA"`, or `"X_scANVI"`). |
 | `dot_size` | `Float` | `5.0` | Size of the dots in the Scanpy UMAP and spatial scatter plots (default: `5.0`). |
+| `exclude_genes_file` | `String` or `None` | `""` | *(Optional)* Path to a plain-text file containing a list of genes to exclude from highly variable gene (HVG) selection before computing PCA (one gene per line). |
 
 ### Deep Learning Model Settings (scVI / scVIVA) {#hide-me}
 
@@ -63,6 +64,7 @@ resolution = [0.5, 1.0, 1.5, 2.0]
 cluster_name = "leiden"
 umap_latent = "X_scVIVA"
 dot_size = 5.0
+exclude_genes_file = "exclude_genes.txt"
 
 # Deep Learning (scVI / scVIVA)
 use_scviva = true
